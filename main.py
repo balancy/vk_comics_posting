@@ -129,8 +129,8 @@ def post_image_on_wall(access_token, group_id, title, image_id, owner_id):
 
 if __name__ == "__main__":
     load_dotenv()
-    access_token = os.getenv("ACCESS_TOKEN")
-    group_id = os.getenv("GROUP_ID")
+    access_token = os.getenv("VK_ACCESS_TOKEN")
+    group_id = os.getenv("VK_GROUP_ID")
 
     comics_number = random.randint(1, NUMBER_OF_COMICS + 1)
     try:
