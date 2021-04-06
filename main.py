@@ -1,12 +1,14 @@
 import os
+import random
 
 from dotenv import load_dotenv
 import requests
 
 COMICS_API_URL = "http://xkcd.com/"
 COMICS_FILENAME = "info.0.json"
-VK_API_URL = "https://api.vk.com/method/"
+NUMBER_OF_COMICS = 2450
 VK_API_VERSION = "5.130"
+VK_API_URL = "https://api.vk.com/method/"
 
 
 def fetch_comics_info(number):
@@ -95,7 +97,7 @@ if __name__ == "__main__":
     access_token = os.getenv("ACCESS_TOKEN")
     group_id = os.getenv("GROUP_ID")
 
-    comics_number = 614
+    comics_number = random.randint(1, NUMBER_OF_COMICS + 1)
     response = fetch_comics_info(comics_number)
     print(response)
     img_url = response.get("img")
