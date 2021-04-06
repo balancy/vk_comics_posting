@@ -98,10 +98,9 @@ if __name__ == "__main__":
     group_id = os.getenv("GROUP_ID")
 
     comics_number = random.randint(1, NUMBER_OF_COMICS + 1)
-    response = fetch_comics_info(comics_number)
-    print(response)
-    img_url = response.get("img")
-    comics_title = response.get("title")
+    comics_info = fetch_comics_info(comics_number)
+    img_url = comics_info.get("img")
+    comics_title = comics_info.get("title")
     # comment = response.get("alt")
     # print(comment)
 
@@ -109,11 +108,8 @@ if __name__ == "__main__":
     download_comics(img_url, comics_title)
 
     url_to_upload = get_url_to_upload_photo(access_token)
-    print(url_to_upload)
     photo_info = post_photo_on_server(url_to_upload.get("upload_url"), f"files/{comics_title}.png")
-    print(photo_info)
     isSaved = save_wall_photo(access_token, photo_info)
-    print(isSaved)
     is_posted = post_photo_on_wall(
         access_token,
         group_id,
@@ -121,4 +117,5 @@ if __name__ == "__main__":
         isSaved.get("id"),
         isSaved.get("owner_id"),
     )
-    print(is_posted)
+
+    os.remove(f"files/{comics_title}.png")
