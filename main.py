@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 
 from dotenv import load_dotenv
 import requests
@@ -12,38 +13,45 @@ VK_API_URL = "https://api.vk.com/method/"
 
 
 def fetch_comics_info(number):
+    """Extracts comics info such as title, author comment, url to image, etc.
+
+    :param number: comics number
+    :return: parsed response
+    """
+
     response = requests.get(f"{COMICS_API_URL}{number}/{COMICS_FILENAME}")
     response.raise_for_status()
 
     return response.json()
 
 
-def download_comics(url, title):
+def download_comics(url, filename):
+    """Downloads comics locally.
+
+    :param url: utl to comics
+    :param filename: name of file to save image to
+    :return: None
+    """
+
     response = requests.get(url)
     response.raise_for_status()
 
-    with open(f"files/{title}.png", 'wb') as f:
+    with open(filename, 'wb') as f:
         f.write(response.content)
 
 
-def get_vk_groups(access_token):
+def find_url_to_upload_image(access_token):
+    """Finds url where to upload comics image.
+
+    :param access_token: VK API access token
+    :return: parsed response
+    """
+
     params = {
         "access_token": access_token,
         "v": VK_API_VERSION,
     }
-
-    response = requests.get(f"{VK_API_URL}groups.get", params=params)
-    response.raise_for_status()
-
-    return response.json()
-
-
-def get_url_to_upload_photo(access_token):
-    params = {
-        "access_token": access_token,
-        "v": VK_API_VERSION,
-    }
-    response = requests.get(
+    response = requests.post(
         f"{VK_API_URL}photos.getWallUploadServer",
         params=params,
     )
@@ -52,7 +60,14 @@ def get_url_to_upload_photo(access_token):
     return response.json().get("response")
 
 
-def post_photo_on_server(url_to_upload, filename):
+def upload_image_on_server(url_to_upload, filename):
+    """Posts image on VK server.
+
+    :param url_to_upload: url of server
+    :param filename: path to the image to upload
+    :return: parsed response
+    """
+
     with open(filename, "rb") as file:
         files = {
             "file1": file,
@@ -63,26 +78,46 @@ def post_photo_on_server(url_to_upload, filename):
     return response.json()
 
 
-def save_wall_photo(access_token, photo_info):
-    params = photo_info.copy()
+def save_uploaded_image_on_server(access_token, image_info):
+    """Saves uploaded image on server.
+
+    :param access_token: VK API access token
+    :param image_info: information about image
+    :return: parsed response
+    """
+
+    params = image_info.copy()
     params.update({
         "access_token": access_token,
         "v": VK_API_VERSION,
     })
 
-    response = requests.post(f"{VK_API_URL}photos.saveWallPhoto", params=params)
+    response = requests.post(
+        f"{VK_API_URL}photos.saveWallPhoto",
+        params=params
+    )
     response.raise_for_status()
 
     return response.json().get("response")[0]
 
 
-def post_photo_on_wall(access_token, group_id, comment, image_id, owner_id):
+def post_image_on_wall(access_token, group_id, title, image_id, owner_id):
+    """Posts saved image on group's wall.
+
+    :param access_token: VK API access token
+    :param group_id: id of group
+    :param title: comics title
+    :param image_id: id of image
+    :param owner_id: id of image's owner
+    :return: parsed response
+    """
+
     params = {
         "access_token": access_token,
         "v": VK_API_VERSION,
         "owner_id": -int(group_id),
         "from_group": 1,
-        "message": comment,
+        "message": title,
         "attachments": f"photo{owner_id}_{image_id}"
     }
 
@@ -98,24 +133,54 @@ if __name__ == "__main__":
     group_id = os.getenv("GROUP_ID")
 
     comics_number = random.randint(1, NUMBER_OF_COMICS + 1)
-    comics_info = fetch_comics_info(comics_number)
+    try:
+        comics_info = fetch_comics_info(comics_number)
+    except requests.HTTPError:
+        print("Unable to reach comics API. Try later")
+        sys.exit()
+
     img_url = comics_info.get("img")
     comics_title = comics_info.get("title")
-    # comment = response.get("alt")
-    # print(comment)
 
     os.makedirs("files", exist_ok=True)
-    download_comics(img_url, comics_title)
+    filename = f"files/{comics_title}.png"
+    try:
+        download_comics(img_url, filename)
+    except requests.HTTPError:
+        print("Unable to download comics. Try later.")
+        sys.exit()
 
-    url_to_upload = get_url_to_upload_photo(access_token)
-    photo_info = post_photo_on_server(url_to_upload.get("upload_url"), f"files/{comics_title}.png")
-    isSaved = save_wall_photo(access_token, photo_info)
-    is_posted = post_photo_on_wall(
-        access_token,
-        group_id,
-        comics_title,
-        isSaved.get("id"),
-        isSaved.get("owner_id"),
-    )
+    try:
+        url_to_upload = find_url_to_upload_image(access_token)
+    except requests.HTTPError:
+        print("Unable to find an url to upload comics to. Try later.")
+        sys.exit()
 
-    os.remove(f"files/{comics_title}.png")
+    try:
+        photo_info = upload_image_on_server(
+            url_to_upload.get("upload_url"),
+            f"files/{comics_title}.png",
+        )
+    except requests.HTTPError:
+        print("Unable to upload an image on server. Try later.")
+        sys.exit()
+
+    try:
+        saved_image = save_uploaded_image_on_server(access_token, photo_info)
+    except requests.HTTPError:
+        print("Unable to save uploaded image on server. Try later.")
+        sys.exit()
+
+    try:
+        post_image_on_wall(
+            access_token,
+            group_id,
+            comics_title,
+            saved_image.get("id"),
+            saved_image.get("owner_id"),
+        )
+    except requests.HTTPError:
+        print("Unable to post image on group's wall. Try later.")
+        sys.exit()
+
+    os.remove(filename)
