@@ -27,7 +27,7 @@ env\scripts\activate
 ```
 pip install -r requirements.txt
 ```
-5. Rename file `.env.example` to `.env` and initialize your propre group_id and access_token:
+5. Rename file `.env.example` to `.env` and initialize your proper group_id and access_token:
 ```console
 VK_GROUP_ID=111111111
 VK_ACCESS_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

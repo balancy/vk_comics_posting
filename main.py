@@ -36,7 +36,7 @@ def download_comics(url, filename):
     response = requests.get(url)
     response.raise_for_status()
 
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         f.write(response.content)
 
 
@@ -132,12 +132,11 @@ if __name__ == "__main__":
     access_token = os.getenv("VK_ACCESS_TOKEN")
     group_id = os.getenv("VK_GROUP_ID")
 
-    comics_number = random.randint(1, NUMBER_OF_COMICS + 1)
+    comics_number = random.randint(1, NUMBER_OF_COMICS)
     try:
         comics_info = fetch_comics_info(comics_number)
     except requests.HTTPError:
-        print("Unable to reach comics API. Try later")
-        sys.exit()
+        sys.exit("Unable to reach comics API. Try later")
 
     img_url = comics_info.get("img")
     comics_title = comics_info.get("title")
@@ -147,29 +146,25 @@ if __name__ == "__main__":
     try:
         download_comics(img_url, filename)
     except requests.HTTPError:
-        print("Unable to download comics. Try later.")
-        sys.exit()
+        sys.exit("Unable to download comics. Try later.")
 
     try:
         url_to_upload = find_url_to_upload_image(access_token)
     except requests.HTTPError:
-        print("Unable to find an url to upload comics to. Try later.")
-        sys.exit()
+        sys.exit("Unable to find an url to upload comics to. Try later.")
 
     try:
         photo_info = upload_image_on_server(
             url_to_upload.get("upload_url"),
-            f"files/{comics_title}.png",
+            filename,
         )
     except requests.HTTPError:
-        print("Unable to upload an image on server. Try later.")
-        sys.exit()
+        sys.exit("Unable to upload an image on server. Try later.")
 
     try:
         saved_image = save_uploaded_image_on_server(access_token, photo_info)
     except requests.HTTPError:
-        print("Unable to save uploaded image on server. Try later.")
-        sys.exit()
+        sys.exit("Unable to save uploaded image on server. Try later.")
 
     try:
         post_image_on_wall(
@@ -180,7 +175,6 @@ if __name__ == "__main__":
             saved_image.get("owner_id"),
         )
     except requests.HTTPError:
-        print("Unable to post image on group's wall. Try later.")
-        sys.exit()
+        sys.exit("Unable to post image on group's wall. Try later.")
 
     os.remove(filename)
