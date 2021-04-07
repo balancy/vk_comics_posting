@@ -33,10 +33,17 @@ VK_GROUP_ID=111111111
 VK_ACCESS_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ```
 &nbsp;&nbsp;&nbsp;&nbsp;
-where `VK_GROUP_ID` is the id of vkontakte group where you want to post comics
+where `VK_GROUP_ID` is the client_id of app representing vkontakte group where you want to post comics
 
 &nbsp;&nbsp;&nbsp;&nbsp;
-where `VK_ACCESS_TOKEN` is your authentication token of vkontakte social network
+where `VK_ACCESS_TOKEN` is your authentication token of vkontakte social network. 
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+You can obtain your token via url: 
+
+```console
+https://oauth.vk.com/authorize?client_id=your_client_id&display=page&scope=photos,groups,wall,offline&response_type=token
+```
 
 6. Run script by command:
 ```console
