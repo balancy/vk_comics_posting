@@ -7,7 +7,6 @@ import requests
 
 COMICS_API_URL = "http://xkcd.com/"
 COMICS_FILENAME = "info.0.json"
-NUMBER_OF_COMICS = 2450
 VK_API_VERSION = "5.130"
 VK_API_URL = "https://api.vk.com/method/"
 
@@ -19,7 +18,11 @@ def fetch_comics_info(number):
     :return: parsed response
     """
 
-    response = requests.get(f"{COMICS_API_URL}{number}/{COMICS_FILENAME}")
+    if not number:
+        url = f"{COMICS_API_URL}{COMICS_FILENAME}"
+    else:
+        url = f"{COMICS_API_URL}{number}/{COMICS_FILENAME}"
+    response = requests.get(url)
     response.raise_for_status()
 
     return response.json()
@@ -136,7 +139,12 @@ if __name__ == "__main__":
     access_token = os.getenv("VK_ACCESS_TOKEN")
     group_id = os.getenv("VK_GROUP_ID")
 
-    comics_number = random.randint(1, NUMBER_OF_COMICS)
+    try:
+        number_of_comics = fetch_comics_info(0).get("num")
+    except requests.HTTPError:
+        sys.exit("Unable to get the total number of comics. Try later.")
+
+    comics_number = random.randint(1, number_of_comics)
     try:
         comics_info = fetch_comics_info(comics_number)
     except requests.HTTPError:
