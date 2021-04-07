@@ -151,6 +151,7 @@ if __name__ == "__main__":
     try:
         url_to_upload = find_url_to_upload_image(access_token)
     except requests.HTTPError:
+        os.remove(filename)
         sys.exit("Unable to find an url to upload comics to. Try later.")
 
     try:
@@ -160,6 +161,8 @@ if __name__ == "__main__":
         )
     except requests.HTTPError:
         sys.exit("Unable to upload an image on server. Try later.")
+    finally:
+        os.remove(filename)
 
     try:
         saved_image = save_uploaded_image_on_server(access_token, photo_info)
@@ -176,5 +179,3 @@ if __name__ == "__main__":
         )
     except requests.HTTPError:
         sys.exit("Unable to post image on group's wall. Try later.")
-
-    os.remove(filename)
