@@ -1,3 +1,4 @@
+import functools
 import os
 import random
 import sys
@@ -43,6 +44,24 @@ def download_comics(url, filename):
         f.write(response.content)
 
 
+def handle_vk_exceptions(func):
+    """Handling vk errors.
+
+    :param func: function to analyse
+    :return:
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        if result.get("error"):
+            raise requests.HTTPError(result.get("error").get("error_msg"))
+        return result
+
+    return wrapper
+
+
+@handle_vk_exceptions
 def find_url_to_upload_image(access_token):
     """Finds url where to upload comics image.
 
@@ -58,11 +77,11 @@ def find_url_to_upload_image(access_token):
         f"{VK_API_URL}photos.getWallUploadServer",
         params=params,
     )
-    response.raise_for_status()
 
-    return response.json().get("response")
+    return response.json()
 
 
+@handle_vk_exceptions
 def upload_image_on_server(url_to_upload, filename):
     """Posts image on VK server.
 
@@ -76,11 +95,11 @@ def upload_image_on_server(url_to_upload, filename):
             "file1": file,
         }
         response = requests.post(url_to_upload, files=files)
-        response.raise_for_status()
 
     return response.json()
 
 
+@handle_vk_exceptions
 def save_uploaded_image_on_server(access_token, server, photo, hash):
     """Saves uploaded image on server.
 
@@ -103,11 +122,11 @@ def save_uploaded_image_on_server(access_token, server, photo, hash):
         f"{VK_API_URL}photos.saveWallPhoto",
         params=params
     )
-    response.raise_for_status()
 
-    return response.json().get("response")[0]
+    return response.json()
 
 
+@handle_vk_exceptions
 def post_image_on_wall(access_token, group_id, title, image_id, owner_id):
     """Posts saved image on group's wall.
 
@@ -129,7 +148,6 @@ def post_image_on_wall(access_token, group_id, title, image_id, owner_id):
     }
 
     response = requests.post(f"{VK_API_URL}wall.post", params=params)
-    response.raise_for_status()
 
     return response.json()
 
@@ -162,17 +180,17 @@ if __name__ == "__main__":
 
     try:
         url_to_upload = find_url_to_upload_image(access_token)
-    except requests.HTTPError:
+    except requests.HTTPError as e:
         os.remove(filename)
-        sys.exit("Unable to find an url to upload comics to. Try later.")
+        sys.exit(f"Error: {e}. Try later.")
 
     try:
         photo_info = upload_image_on_server(
-            url_to_upload.get("upload_url"),
+            url_to_upload.get("response").get("upload_url"),
             filename,
         )
-    except requests.HTTPError:
-        sys.exit("Unable to upload an image on server. Try later.")
+    except requests.HTTPError as e:
+        sys.exit(f"Error: {e}. Try later.")
     finally:
         os.remove(filename)
 
@@ -183,9 +201,10 @@ if __name__ == "__main__":
             photo_info.get("photo"),
             photo_info.get("hash"),
         )
-    except requests.HTTPError:
-        sys.exit("Unable to save uploaded image on server. Try later.")
+    except requests.HTTPError as e:
+        sys.exit(f"Error: {e}. Try later.")
 
+    saved_image = saved_image.get("response")[0]
     try:
         post_image_on_wall(
             access_token,
@@ -194,5 +213,5 @@ if __name__ == "__main__":
             saved_image.get("id"),
             saved_image.get("owner_id"),
         )
-    except requests.HTTPError:
-        sys.exit("Unable to post image on group's wall. Try later.")
+    except requests.HTTPError as e:
+        sys.exit(f"Error: {e}. Try later.")
