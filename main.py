@@ -78,19 +78,23 @@ def upload_image_on_server(url_to_upload, filename):
     return response.json()
 
 
-def save_uploaded_image_on_server(access_token, image_info):
+def save_uploaded_image_on_server(access_token, server, photo, hash):
     """Saves uploaded image on server.
 
     :param access_token: VK API access token
-    :param image_info: information about image
+    :param server: server where uploaded image is keeping
+    :param photo: image info
+    :param hash: photo's hash
     :return: parsed response
     """
 
-    params = image_info.copy()
-    params.update({
+    params= {
+        "server": server,
+        "photo": photo,
+        "hash": hash,
         "access_token": access_token,
         "v": VK_API_VERSION,
-    })
+    }
 
     response = requests.post(
         f"{VK_API_URL}photos.saveWallPhoto",
@@ -165,7 +169,12 @@ if __name__ == "__main__":
         os.remove(filename)
 
     try:
-        saved_image = save_uploaded_image_on_server(access_token, photo_info)
+        saved_image = save_uploaded_image_on_server(
+            access_token,
+            photo_info.get("server"),
+            photo_info.get("photo"),
+            photo_info.get("hash"),
+        )
     except requests.HTTPError:
         sys.exit("Unable to save uploaded image on server. Try later.")
 
