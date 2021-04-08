@@ -54,8 +54,8 @@ def handle_vk_exceptions(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        if result.get("error"):
-            raise requests.HTTPError(result.get("error").get("error_msg"))
+        if error_elm := result.get("error"):
+            raise requests.HTTPError(error_elm.get("error_msg"))
         return result
 
     return wrapper
