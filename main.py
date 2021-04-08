@@ -102,20 +102,20 @@ def upload_image_on_server(url_to_upload, filename):
 
 
 @handle_vk_exceptions
-def save_uploaded_image_on_server(access_token, server, photo, hash):
+def save_uploaded_image_on_server(access_token, server, photo, photo_hash):
     """Saves uploaded image on server.
 
     :param access_token: VK API access token
     :param server: server where uploaded image is keeping
     :param photo: image info
-    :param hash: photo's hash
+    :param photo_hash: photo's hash
     :return: parsed response
     """
 
     params= {
         "server": server,
         "photo": photo,
-        "hash": hash,
+        "hash": photo_hash,
         "access_token": access_token,
         "v": VK_API_VERSION,
     }
@@ -197,6 +197,8 @@ if __name__ == "__main__":
             saved_image.get("owner_id"),
         )
     except requests.HTTPError as e:
+        sys.exit(f"Error: {e}. Try later.")
+    except requests.ConnectionError as e:
         sys.exit(f"Error: {e}. Try later.")
     finally:
         if os.path.exists(filename):
