@@ -77,6 +77,7 @@ def find_url_to_upload_image(access_token):
         f"{VK_API_URL}photos.getWallUploadServer",
         params=params,
     )
+    response.raise_for_status()
 
     return response.json()
 
@@ -95,6 +96,7 @@ def upload_image_on_server(url_to_upload, filename):
             "file1": file,
         }
         response = requests.post(url_to_upload, files=files)
+        response.raise_for_status()
 
     return response.json()
 
@@ -122,6 +124,7 @@ def save_uploaded_image_on_server(access_token, server, photo, hash):
         f"{VK_API_URL}photos.saveWallPhoto",
         params=params
     )
+    response.raise_for_status()
 
     return response.json()
 
@@ -148,6 +151,7 @@ def post_image_on_wall(access_token, group_id, title, image_id, owner_id):
     }
 
     response = requests.post(f"{VK_API_URL}wall.post", params=params)
+    response.raise_for_status()
 
     return response.json()
 
@@ -157,55 +161,34 @@ if __name__ == "__main__":
     access_token = os.getenv("VK_ACCESS_TOKEN")
     group_id = os.getenv("VK_GROUP_ID")
 
-    try:
-        number_of_comics = fetch_comics_info(0).get("num")
-    except requests.HTTPError:
-        sys.exit("Unable to get the total number of comics. Try later.")
-
-    comics_number = random.randint(1, number_of_comics)
-    try:
-        comics_info = fetch_comics_info(comics_number)
-    except requests.HTTPError:
-        sys.exit("Unable to reach comics API. Try later")
-
-    img_url = comics_info.get("img")
-    comics_title = comics_info.get("title")
-
     os.makedirs("files", exist_ok=True)
-    filename = f"files/{comics_title}.png"
-    try:
-        download_comics(img_url, filename)
-    except requests.HTTPError:
-        sys.exit("Unable to download comics. Try later.")
+    filename = "files/comics.png"
 
     try:
+        total_number_of_comics = fetch_comics_info(0).get("num")
+        comics_number = random.randint(1, total_number_of_comics)
+        comics_info = fetch_comics_info(comics_number)
+
+        comics_img_url = comics_info.get("img")
+        comics_title = comics_info.get("title")
+        filename = f"files/{comics_title}.png"
+
+        download_comics(comics_img_url, filename)
+
         url_to_upload = find_url_to_upload_image(access_token)
-    except requests.HTTPError as e:
-        os.remove(filename)
-        sys.exit(f"Error: {e}. Try later.")
-
-    try:
         photo_info = upload_image_on_server(
             url_to_upload.get("response").get("upload_url"),
             filename,
         )
-    except requests.HTTPError as e:
-        sys.exit(f"Error: {e}. Try later.")
-    finally:
-        os.remove(filename)
 
-    try:
         saved_image = save_uploaded_image_on_server(
             access_token,
             photo_info.get("server"),
             photo_info.get("photo"),
             photo_info.get("hash"),
         )
-    except requests.HTTPError as e:
-        sys.exit(f"Error: {e}. Try later.")
 
-    saved_image = saved_image.get("response")[0]
-    try:
+        saved_image = saved_image.get("response")[0]
         post_image_on_wall(
             access_token,
             group_id,
@@ -215,3 +198,6 @@ if __name__ == "__main__":
         )
     except requests.HTTPError as e:
         sys.exit(f"Error: {e}. Try later.")
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
